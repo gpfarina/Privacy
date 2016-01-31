@@ -98,7 +98,7 @@ exp<-function(nPoints, m, sizedb, prior, eps, distX, v){
     }
     else{
         data<-rbind(cbind(prob, less1), cbind(prob, less2))
-        str<-"Laplace Noise  no Post"
+        str<-"Laplace Noise  no Post "
     }
     show(data)
     r<-plot3d(x=data[,1], y=data[,2], z=data[,3], xlab="prob", ylab="prob", zlab=sprintf("#<=%.1f",distX), col=c(rep("black",nPoints), rep("red",nPoints)))

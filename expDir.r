@@ -179,6 +179,18 @@ if (identical(distance, totalVariationD)) return ("TV")
 		else if(identical(distance, klD)) return ("KL")
 			else if(identical(distance, klSymmetricD))return("KLSym")
 }
+
+
+
+#n: number of times we will add noise, so in our histogram will consist of n points in 10 bins (0.0, by 0.1, 1.0)
+#teps: epsilon parameter
+#theta: vector of probabilities used to generate the database (it has to come from the len-simplex
+#len: number of categorie
+#size: size of the db
+#prior: prior distribution: has to have len parameters
+#distance: the distance to be used, usually hellingerD
+#sensH: sensitivity used for the exponential mechanism, or better the sensitivity of the statistic metric
+#sensL1: sensitivity of the l1 norm over the parameters: it should be 2
 plotAccuraciesD<-function(n, teps, theta, len, size, prior, distance, sensH, sensL1){
   hist0<-1:n
   hist1<-1:n
