@@ -87,7 +87,7 @@ exp<-function(nPoints, m, sizedb, prior, eps, distX, v){
                     if(sum(noisy<0)>0){show(sprintf("This ended up with negative parameters: %s, ", sprintf("(%s)", paste(noisy, collapse=" "))))}
             }
         }
-        show(sprintf("--->%d-th loop", i))
+        show(sprintf("---> %d-th loop", i))
     }
     less1<-(less1/m)*100
     less2<-(less2/m)*100
