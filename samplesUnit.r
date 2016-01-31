@@ -41,6 +41,22 @@ sampleFromSimplex<-function(m,nPoints, sizedb,prior, eps){
 }
 
 
+#nPoints:number of points sampled from the 2-simples.
+#m: number of times we add noise to the posterior
+#sizedb: number of rows in the db
+#prior: prior beta distribution
+#eps: epsilon parameter
+#distX: 0<=distX<=1, this is the mximum distance from the real posterior we as limit
+#v: if true LPvsHell if false LPvsNoPost
+#This function samples nPoints form the simplex and then for every of this points
+#generates m times a db with length(prior) categories and of size sizedb.
+#after this computes the real posterior given the database and
+#then adds noise to the posterior using laplace.
+#It then performs postprocessing (LP and Hell) if the
+#posterior noisy distributions are closer than distX to the real increases teh relative counters.
+
+
+
 
 exp<-function(nPoints, m, sizedb, prior, eps, distX, v){
     cat<-length(prior)
@@ -64,6 +80,10 @@ exp<-function(nPoints, m, sizedb, prior, eps, distX, v){
 
 data1<-rbind(cbind(prob, less1), cbind(prob, less2))
 data2<-rbind(cbind(prob, less1), cbind(prob, less3))
+print("--------")
+    show(data1)
+print("--------")
+    show(data2)
 if(v){
     r<-plot3d(x=data1[,1], y=data1[,2], z=data1[,3], xlab="prob", ylab="prob", zlab="Hell/LP", col=c("black", "red"))
 }
