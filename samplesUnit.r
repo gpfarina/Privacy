@@ -110,3 +110,39 @@ exp<-function(nPoints, m, sizedb, prior, eps, distX, v){
 
     return(r)
 }
+
+
+exp2<-function(nPoints, m, sizedb, prior, eps, distX, v){
+    cat<-length(prior)
+    prob<-matrix(rep(0, nPoints*cat), ncol=cat)
+    lp<-rep(0, nPoints)
+    nopost<-rep(0, nPoints)
+    hell<-rep(0, nPoints)
+    for(i in 1:nPoints){
+        prob[i,]<- simplex.sample(cat, 1, sort=FALSE)$samples[1,]
+        db<-genDbD(sizedb, cat, prob[i,])
+        postReal <- computePost(prior, db)
+         for(l in 1:m){
+            noisy  <-laplaceNoise(2, eps, prior, db)
+            noisy1<-laplaceNoiseLPD(2, eps, prior, db, noisy)
+            if(as.numeric(hellingerD(noisy1, postReal ))<=distX){lp[i]<-lp[i]+1}
+             if(v){
+                noisy2<-laplaceNoisePostHellingerD(2, eps, prior, db, noisy)
+                if(as.numeric(hellingerD(noisy2, postReal ))<=distX){hell[i]<-hell[i]+1}
+            }
+             else{
+              	if(!(sum(noisy<0)>0)){
+                    if(as.numeric(hellingerD(noisy  , postReal ))<=distX){
+                        nopost[i]<-nopost[i]+1
+                     }
+                }
+                else
+                    if(sum(noisy<0)>0){show(sprintf("This ended up with negative parameters: %s, ", sprintf("(%s)", paste(noisy, collapse=" "))))}
+            }
+        }
+        show(sprintf("---> %d-th loop", i))
+    }
+    plot(prob[,1], nopost-lp)
+}
+
+

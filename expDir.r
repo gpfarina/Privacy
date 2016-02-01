@@ -200,7 +200,7 @@ plotAccuraciesD<-function(n, teps, theta, len, size, prior, distance, sensH, sen
   db<-genDbD(len, size, theta)
   real<-computePost(prior, db)
   r<-rangeDir(prior, len)
-#  distr<-createDistr(prior, db, teps, distance, sensH)
+#  distr<-createDistr(prior, db, teps, distance, sensH) # we are not using expmech so we don't create it for now
   failed<-0
   for(i in 1:n){
       data[i,]<-laplaceNoiseD(sensL1, teps, prior, db)
