@@ -43,7 +43,14 @@ betam<-function(a){
    return(Reduce(function(x,y){x*y},new("mpfr",unlist(sapply(a,function(x){gamma(as(x,"mpfr"))}))), as(1,"mpfr") )/gamma(Reduce(function(x,y){x+y},a,as(0, "mpfr"))))
 }
 hellingerD <- function (a,b){
-       d<-sqrt(1.0 - betam((a+b)/2)/sqrt(betam(a)*betam(b)))
+      d<-NULL
+       if(identical(a, b)) {
+           show("Iam here")
+           d<-as.numeric(as(0, "mpfr"))
+           }
+       else{
+                d<-as.numeric(sqrt(1.0 - betam((a+b)/2)/sqrt(betam(a)*betam(b))))
+   	}
        return (d)
 }
 #this function generates all the possible parameters of a dirichlet with k categories and n observations

@@ -125,15 +125,23 @@ exp2<-function(nPoints, m, sizedb, prior, eps, distX, v){
          for(l in 1:m){
             noisy  <-laplaceNoise(2, eps, prior, db)
             noisy1<-laplaceNoiseLPD(2, eps, prior, db, noisy)
-            if(as.numeric(hellingerD(noisy1, postReal ))<=distX){lp[i]<-lp[i]+1}
-             if(v){
-                noisy2<-laplaceNoisePostHellingerD(2, eps, prior, db, noisy)
-                if(as.numeric(hellingerD(noisy2, postReal ))<=distX){hell[i]<-hell[i]+1}
+            if(is.nan(hellingerD(noisy1, postReal ))){
+                show(noisy1)
+                show(postReal)
+                lp[i]<-lp[i]+1
             }
-             else{
+            else
+                if(hellingerD(noisy1, postReal )<=distX){
+                    lp[i]<-lp[i]+1
+            }
+            if(v){
+                noisy2<-laplaceNoisePostHellingerD(2, eps, prior, db, noisy)
+                if(hellingerD(noisy2, postReal )<=distX){hell[i]<-hell[i]+1}
+            }
+            else{
               	if(!(sum(noisy<0)>0)){
-                    if(as.numeric(hellingerD(noisy  , postReal ))<=distX){
-                        nopost[i]<-nopost[i]+1
+                        if(hellingerD(noisy  , postReal )<=distX){
+                            nopost[i]<-nopost[i]+1
                      }
                 }
                 else
