@@ -150,7 +150,8 @@ exp2<-function(nPoints, m, sizedb, prior, eps, distX, v){
         }
         show(sprintf("---> %d-th loop", i))
     }
-    plot(prob[,1], nopost-lp)
+    if(v){plot(prob[,1], hell-lp)}
+    else {plot(prob[,1], nopost-lp)}
 }
 
 

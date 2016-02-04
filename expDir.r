@@ -183,8 +183,8 @@ lpvsHellPostD<-function(eps, prior, n, size, times, theta){
 dist2Str<-function(distance){
 if (identical(distance, totalVariationD)) return ("TV")
 	else if(identical(distance, hellingerD)) return ("Hell")
-		else if(identical(distance, klD)) return ("KL")
-			else if(identical(distance, klSymmetricD))return("KLSym")
+		#else if(identical(distance, klD)) return ("KL")
+		#	else if(identical(distance, klSymmetricD))return("KLSym")
 }
 
 
@@ -213,7 +213,7 @@ plotAccuraciesD<-function(n, teps, theta, len, size, prior, distance, sensH, sen
       data[i,]<-laplaceNoiseD(sensL1, teps, prior, db)
   }
   for(i in 1:n){
-      show(i)
+     # show(i)
       	if(sum((data[i,])<0)>0){
                 hist0[i]<-1
                 hist2[i]<-1
@@ -255,3 +255,40 @@ histPercent <- function(x, n,failed,...) {
 #lpsolve come svegliere fra varie soluzioni
 #tutte le soluzioni su lpMin e poi pescare...perché ho molti minimi
 #stampare le beta nei grafici
+#n: number of times we will add noise, so in our histogram will consist of n points in 10 bins (0.0, by 0.1, 1.0)
+#teps: epsilon parameter
+#theta: vector of probabilities used to generate the database (it has to come from the len-simplex
+#len: number of categorie
+#size: size of the db
+#prior: prior distribution: has to have len parameters
+plotAccuraciesNoVsLp<-function(n, teps, theta, len, prior){
+  hist0<-1:n
+  hist1<-1:n
+  data<-matrix(0, n, 2)
+  db<-genDbD(len, length(prior), theta)
+  real<-computePost(prior, db)
+  failed<-0
+  for(i in 1:n){
+        data[i,]<-laplaceNoiseD(2, teps, prior, db)
+        v<-laplaceNoiseLPD(2, teps, prior, db, data[i,])
+        hist0[i]<-abs(data[i,1]-real[1])+abs(data[i,2]-real[2])
+        hist1[i]<-abs(v[1]-real[1])+abs(v[2]-real[2])
+        show(i)
+      }
+  par(mfrow = c(1,2))
+  show(hist0)
+  histPercent1(hist0,  n, failed, main =   "Laplace Noise no Post", xlab=dist2Str(distance))
+  histPercent1(hist1,  n, 0, main =   "Laplace Noise Mult LPminL1Norm", xlab=dist2Str(distance))
+  string1<-sprintf("(%s)", paste(theta, collapse=" "))
+  string2<-sprintf("(%s)", paste(prior, collapse=" "))
+  string<- sprintf("eps=%.3f, samples=%d, theta=%s, size db=%d, prior=%s",teps, n, string1, len,
+                    string2)
+  mtext(outer=TRUE, string , line=-1.2)
+  return(0)
+}
+histPercent1 <- function(x, n,failed,...) {
+   H <- hist(x, plot = FALSE, breaks=seq(0,max(x)+5, by=5))
+   H$density <- with(H, 100 * density*diff(breaks)[1])
+   labs <- paste(round(H$density), "%", sep="")
+   plot(H, freq=FALSE, labels = labs, col="gray", ylim=c(0, 1.10*max(H$density)),...)
+}
