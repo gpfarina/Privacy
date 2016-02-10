@@ -123,7 +123,7 @@ makeConstraints <- function(n){
     constr<-rbind(constr, f1, f1)
     return(matrix(constr, nrow=3*n+2))
 }
-laplaceNoiseLPD <-function(sens, eps, prior, db, value){
+laplaceNoiseLPD <-function(sens, eps, prior, db, value, int){
     z<-rep(0, 2*length(value))
     for(i in 1:(2*length(value))){
             z[i]<-  ((-1)**(i))*(value[ceiling(i/2)])
@@ -132,8 +132,12 @@ laplaceNoiseLPD <-function(sens, eps, prior, db, value){
     tt.con <-  makeConstraints(length(prior))
     tt.dir  <-   c( rep("<=", 2*length(prior)), rep(">=", length(prior)) , ">=", "<="  )
     tt.rhs  <-  c(z, prior, length(db)+sum(prior), length(db)+sum(prior))
- #   d<-lp ("min", tt.obj, tt.con, tt.dir, tt.rhs,int.vec=seq(length(prior)+1, 2*length(prior))) #removed the integer constraints 
-    d<-lp ("min", tt.obj, tt.con, tt.dir, tt.rhs)
+    if(int){
+        d<-lp ("min", tt.obj, tt.con, tt.dir, tt.rhs,int.vec=seq(length(prior)+1, 2*length(prior))) #removed the integer constraints
+    }
+    else{
+        d<-lp ("min", tt.obj, tt.con, tt.dir, tt.rhs)
+    }
     return(d$solution[c(seq(length(prior)+1, 2*length(prior)))])
 }
 
@@ -264,21 +268,24 @@ histPercent <- function(x, n,failed,...) {
 plotAccuraciesNoVsLp<-function(n, teps, theta, len, prior){
   hist0<-1:n
   hist1<-1:n
+  hist2<-1:n
   data<-matrix(0, n, 2)
   db<-genDbD(len, length(prior), theta)
   real<-computePost(prior, db)
   failed<-0
   for(i in 1:n){
         data[i,]<-laplaceNoiseD(2, teps, prior, db)
-        v<-laplaceNoiseLPD(2, teps, prior, db, data[i,])
+        v<-laplaceNoiseLPD(2, teps, prior, db, data[i,], FALSE)
+        s<-laplaceNoiseLPD(2, teps, prior, db, data[i,], TRUE)
         hist0[i]<-abs(data[i,1]-real[1])+abs(data[i,2]-real[2])
         hist1[i]<-abs(v[1]-real[1])+abs(v[2]-real[2])
-        show(i)
+        hist2[i]<-abs(s[1]-real[1])+abs(s[2]-real[2])
+      #  show(i)
       }
-  par(mfrow = c(1,2))
-  show(hist0)
+  par(mfrow = c(2,2))
   histPercent1(hist0,  n, failed, main =   "Laplace Noise no Post", xlab=dist2Str(distance))
-  histPercent1(hist1,  n, 0, main =   "Laplace Noise Mult LPminL1Norm", xlab=dist2Str(distance))
+  histPercent1(hist1,  n, 0, main =   "Laplace Noise Mult LPminL1Norm No Int Constraints", xlab=dist2Str(distance))
+  histPercent1(hist2,  n, 0, main =   "Laplace Noise Mult LPminL1Norm Int Constraints", xlab=dist2Str(distance))
   string1<-sprintf("(%s)", paste(theta, collapse=" "))
   string2<-sprintf("(%s)", paste(prior, collapse=" "))
   string<- sprintf("eps=%.3f, samples=%d, theta=%s, size db=%d, prior=%s",teps, n, string1, len,
@@ -287,8 +294,82 @@ plotAccuraciesNoVsLp<-function(n, teps, theta, len, prior){
   return(0)
 }
 histPercent1 <- function(x, n,failed,...) {
-   H <- hist(x, plot = FALSE, breaks=seq(0,max(x)+5, by=5))
+   H <- hist(x, plot=FALSE, breaks=seq(0,max(x)+5, by=5))
    H$density <- with(H, 100 * density*diff(breaks)[1])
-   labs <- paste(round(H$density), "%", sep="")
+   labs <- paste(H$density, "%", sep="")
    plot(H, freq=FALSE, labels = labs, col="gray", ylim=c(0, 1.10*max(H$density)),...)
+}
+
+compAverage<-function(simplexSamples, n, teps, len, prior){
+    diff0<-matrix(0, simplexSamples+1, 2)
+    diff1<-matrix(0, simplexSamples+1, 2)
+    t=1
+    for(i in seq(0, 1, by = (1/simplexSamples))){
+          theta<-c(i,1-i)
+          db<-genDbD(len, length(prior), theta)
+          real<-computePost(prior, db)
+          data<-matrix(0, n, 2)
+          hist0<-1:n
+          hist1<-1:n
+          hist2<-1:n
+          for(j in 1:n){
+                data[j,]<-laplaceNoiseD(2, teps, prior, db)
+                v<-laplaceNoiseLPD(2, teps, prior, db, data[j,], FALSE)
+                s<-laplaceNoiseLPD(2, teps, prior, db, data[j,], TRUE)
+                  hist0[j]<-abs(data[j,1]-real[1])+abs(data[j,2]-real[2])
+                  hist1[j]<-abs(v[1]-real[1])+abs(v[2]-real[2])
+                  hist2[j]<-abs(s[1]-real[1])+abs(s[2]-real[2])
+                  #hist0[j]<-sqrt((data[j,1]-real[1])**2+(data[j,2]-real[2])**2)
+                  #hist1[j]<-sqrt((v[1]-real[1])**2+(v[2]-real[2])**2)
+                  #hist2[j]<-sqrt((s[1]-real[1])**2+(s[2]-real[2])**2)
+           }
+          H0<-hist(hist0, plot=FALSE, breaks=seq(0,max(hist0)+5, by=5))
+          H1<-hist(hist1, plot=FALSE, breaks=seq(0,max(hist1)+5, by=5))
+          H2<-hist(hist2, plot=FALSE, breaks=seq(0,max(hist2)+5, by=5))
+          par(mfrow = c(2,2))
+          diff0[t,]<-c(H1$counts[1], H0$counts[1])
+          diff1[t,]<-c(H2$counts[1], H1$counts[1])
+          t<-t+1
+          histPercent1(hist0,  n, 0, main =   "Laplace Noise no Post", xlab=dist2Str(distance))
+          histPercent1(hist1,  n, 0, main =   "Laplace Noise Mult LPminL1Norm No Int Constraints", xlab=dist2Str(distance))
+          histPercent1(hist2,  n, 0, main =   "Laplace Noise Mult LPminL1Norm Int Constraints", xlab=dist2Str(distance))
+          string1<-sprintf("(%s)", paste(theta, collapse=" "))
+          string2<-sprintf("(%s)", paste(prior, collapse=" "))
+          string<- sprintf("eps=%.3f, samples=%d, theta=%s, size db=%d, prior=%s",teps, n, string1, len,
+                           string2)
+          mtext(outer=TRUE, string , line=-1.2)
+    }
+    return(cbind(diff0, as.logical(diff0[,1]>=diff0[,2]), diff1, as.logical(diff1[,1]>=diff1[,2])))
+}
+
+#max articolo metriche? MSE
+#geoindi generalizzare a stat distance: come fare sampling?
+#metriche utilizzate in dimitrakis
+comp1<-function(prior, eps, db, times){
+    real<-computePost(prior,db)
+    v1<-0
+    v2<-0
+    v3<-0
+    for(i in 1:times){
+        	nL<-laplaceNoiseD(2, eps, prior, db)
+        	nLPNI<-laplaceNoiseLPD(2, eps, prior, db, nL, FALSE)
+        	nLPI<-laplaceNoiseLPD(2, eps, prior, db, nL, TRUE)
+        	v1<-v1+(hellingerD(real, nL)**2)/times
+        	v2<-v2+(hellingerD(real, nLPNI)**2)/times
+        	v3<-v3+(hellingerD(real, nLPI)**2)/times
+                ## v1<-v1+(((nL[1]-real[1])**2)+(nL[2]-real[2])**2)/times
+                ## v2<-v2+(((nLPNI[1]-real[1])**2)+(nLPNI[2]-real[2])**2)/times
+                ## v3<-v3+(((nLPI[1]-real[1])**2)+(nLPI[2]-real[2])**2)/times
+ 
+            }
+    return(c(v1,v2,v3))
+}
+MSE0<-function(prior, db, intervals, times){
+    i<-1
+    v<-matrix(0, intervals, 3)
+    for(eps in seq(0.2/intervals, 0.2, by = (0.2/intervals))){
+        v[i,]<-comp1(prior, eps, db, times)
+        i<-i+1
+    }
+    return(v)
 }
