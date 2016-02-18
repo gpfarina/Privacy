@@ -1,3 +1,4 @@
+rm(list=ls())
 library(SimplicialCubature)
 library(stats)
 library(gtools)
@@ -45,7 +46,7 @@ betam<-function(a){
 hellingerD <- function (a,b){
       d<-NULL
        if(identical(a, b)) {
-           show("Iam here")
+           show("A distance of 0 has been reached")
            d<-as.numeric(as(0, "mpfr"))
            }
        else{
@@ -133,7 +134,7 @@ laplaceNoiseLPD <-function(sens, eps, prior, db, value, int){
     tt.dir  <-   c( rep("<=", 2*length(prior)), rep(">=", length(prior)) , ">=", "<="  )
     tt.rhs  <-  c(z, prior, length(db)+sum(prior), length(db)+sum(prior))
     if(int){
-        d<-lp ("min", tt.obj, tt.con, tt.dir, tt.rhs,int.vec=seq(length(prior)+1, 2*length(prior))) #removed the integer constraints
+        d<-lp ("min", tt.obj, tt.con, tt.dir, tt.rhs,int.vec=seq(length(prior)+1, 2*length(prior))) 
     }
     else{
         d<-lp ("min", tt.obj, tt.con, tt.dir, tt.rhs)
@@ -345,31 +346,59 @@ compAverage<-function(simplexSamples, n, teps, len, prior){
 #max articolo metriche? MSE
 #geoindi generalizzare a stat distance: come fare sampling?
 #metriche utilizzate in dimitrakis
-comp1<-function(prior, eps, db, times){
+comp1<-function(prior, eps, db, times,d){
     real<-computePost(prior,db)
     v1<-0
     v2<-0
     v3<-0
     for(i in 1:times){
+
         	nL<-laplaceNoiseD(2, eps, prior, db)
         	nLPNI<-laplaceNoiseLPD(2, eps, prior, db, nL, FALSE)
         	nLPI<-laplaceNoiseLPD(2, eps, prior, db, nL, TRUE)
-        	v1<-v1+(hellingerD(real, nL)**2)/times
-        	v2<-v2+(hellingerD(real, nLPNI)**2)/times
-        	v3<-v3+(hellingerD(real, nLPI)**2)/times
-                ## v1<-v1+(((nL[1]-real[1])**2)+(nL[2]-real[2])**2)/times
-                ## v2<-v2+(((nLPNI[1]-real[1])**2)+(nLPNI[2]-real[2])**2)/times
-                ## v3<-v3+(((nLPI[1]-real[1])**2)+(nLPI[2]-real[2])**2)/times
- 
+                if(d){
+                    if(!(is.nan(hellingerD(real, nL)))){
+                        v1<-v1+(hellingerD(real, nL))/times
+                    }
+                    else{
+                        v1<-v1+1/times
+                    }
+                    v2<-v2+(hellingerD(real, nLPNI))/times
+                    v3<-v3+(hellingerD(real, nLPI))/times
+            }
+        else{
+                v1<-v1+(((nL[1]-real[1])**2)+(nL[2]-real[2])**2)/times
+                v2<-v2+(((nLPNI[1]-real[1])**2)+(nLPNI[2]-real[2])**2)/times
+                v3<-v3+(((nLPI[1]-real[1])**2)+(nLPI[2]-real[2])**2)/times
+            }
             }
     return(c(v1,v2,v3))
 }
-MSE0<-function(prior, db, intervals, times){
+
+MSE0<-function(prior, db, intervals, times,d){
     i<-1
     v<-matrix(0, intervals, 3)
-    for(eps in seq(0.2/intervals, 0.2, by = (0.2/intervals))){
-        v[i,]<-comp1(prior, eps, db, times)
+#    for(eps in seq(0.2/intervals, 0.2, by = (0.2/intervals))){
+        for(eps in seq(1/intervals, 1, by = (1/intervals))){
+        v[i,]<-comp1(prior, eps, db, times,d)
         i<-i+1
     }
     return(v)
 }
+
+
+intervals<-50
+d<-TRUE
+times<- 50
+sizedb<-100
+theta<-c(0.5,0.5)
+res<-MSE0(c(10,10), genDbD(sizedb, 2, theta), intervals, times, d)
+eps <- seq(1/intervals, 1, by = (1/intervals))
+plot(eps, res[,3],col='green')
+lines(eps, res[,3],col='green')
+par(new=T)
+lines(eps, res[,2],col='red')
+par(new=T)
+lines(eps, res[,1],col='black')
+legend('topright',c("POST-INT-POS-SUM","POST-POS-SUM","NO-POST") , 
+   lty=1, col=c('green', 'red', 'black'), bty='n', cex=.75)
