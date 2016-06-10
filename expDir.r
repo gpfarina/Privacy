@@ -100,10 +100,12 @@ expMechDir<-function(priors, db, eps, dist, sens){
     distr<-createDistr(priors,db, eps, dist, sens)
     return(sample(apply(rangeDir(priors, length(db)),1,function(x){return(list(x))}) ,1,prob=distr))
 }
+#adds noise to the parameters
 laplaceNoiseD<-function(sens, eps, prior, db){
     beta<- computePost(prior, db)
     return(sapply(beta, function(b){rlaplace(1, b, (sens/eps))}))
 }
+#make constraints for the LP solver
 makeConstraints <- function(n){
     constr<- NULL
     for(i in 1: n ){
@@ -124,6 +126,7 @@ makeConstraints <- function(n){
     constr<-rbind(constr, f1, f1)
     return(matrix(constr, nrow=3*n+2))
 }
+#adds noise but returns consistent values
 laplaceNoiseLPD <-function(sens, eps, prior, db, value, int){
     z<-rep(0, 2*length(value))
     for(i in 1:(2*length(value))){
@@ -141,10 +144,12 @@ laplaceNoiseLPD <-function(sens, eps, prior, db, value, int){
     }
     return(d$solution[c(seq(length(prior)+1, 2*length(prior)))])
 }
-
+#generates a db of n elements coming from a size categories with proability theta
 genDbD<- function(n, size, theta){
     return(sample(seq(0, size-1), n, prob=theta, replace=TRUE) )
 }
+#returns a beta which minimizes the hellinger distance from the one with noisy oarameters
+#the returned one has parameters which are consistent
 laplaceNoisePostHellingerD <- function (sens, eps, prior, db, noisy){
     beta<- computePost(prior, db)
     r<-rangeDir(prior, length(db))
@@ -185,6 +190,7 @@ lpvsHellPostD<-function(eps, prior, n, size, times, theta){
        fill = c("red", "black"))
     return(0)
 }
+#convert to strings the name of the function
 dist2Str<-function(distance){
 if (identical(distance, totalVariationD)) return ("TV")
 	else if(identical(distance, hellingerD)) return ("Hell")
@@ -209,7 +215,7 @@ plotAccuraciesD<-function(n, teps, theta, len, size, prior, distance, sensH, sen
   hist2<-1:n
   hist3<-1:n
   data<-matrix(0, n, 2)
-  db<-genDbD(len, size, theta)
+  db<-genDbD(size, len, theta)
   real<-computePost(prior, db)
   r<-rangeDir(prior, len)
 #  distr<-createDistr(prior, db, teps, distance, sensH) # we are not using expmech so we don't create it for now
@@ -233,7 +239,7 @@ plotAccuraciesD<-function(n, teps, theta, len, size, prior, distance, sensH, sen
          #   v2<- sample(x=as.list(data.frame(t(r))), 1, replace = T, prob=as.vector(t(distr))) #expmech
         #    hist2[i]<-as.numeric(distance(v2[[1]], real))
         }
-        v1<-laplaceNoiseLPD(sensL1, teps, prior, db, data[i,])
+        v1<-laplaceNoiseLPD(sensL1, teps, prior, db, data[i,], TRUE)
         hist1[i]<-as.numeric(distance(v1,real))
       }
   par(mfrow = c(2,2))
@@ -342,10 +348,8 @@ compAverage<-function(simplexSamples, n, teps, len, prior){
     }
     return(cbind(diff0, as.logical(diff0[,1]>=diff0[,2]), diff1, as.logical(diff1[,1]>=diff1[,2])))
 }
-
-#max articolo metriche? MSE
-#geoindi generalizzare a stat distance: come fare sampling?
-#metriche utilizzate in dimitrakis
+#TODO:
+#geondi: how to generalize to a stastical distance and how to sample
 comp1<-function(prior, eps, db, times,d){
     real<-computePost(prior,db)
     v1<-0
@@ -366,7 +370,7 @@ comp1<-function(prior, eps, db, times,d){
                     v2<-v2+(hellingerD(real, nLPNI))/times
                     v3<-v3+(hellingerD(real, nLPI))/times
             }
-        else{
+               else{
                 v1<-v1+(((nL[1]-real[1])**2)+(nL[2]-real[2])**2)/times
                 v2<-v2+(((nLPNI[1]-real[1])**2)+(nLPNI[2]-real[2])**2)/times
                 v3<-v3+(((nLPI[1]-real[1])**2)+(nLPI[2]-real[2])**2)/times
