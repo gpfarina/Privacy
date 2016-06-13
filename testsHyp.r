@@ -11,3 +11,4 @@ test<-function(a,b,n){
                       klSymmetric(a+i+1,b+n-i,a+i,b+n-i+1) ))
     }
 }
+test(1,1,100)
